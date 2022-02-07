@@ -3,16 +3,21 @@ version: '3'
 
 services:
 
-  app:
-    container_name: app
+  frontend:
+    container_name: frontend
     build:
-      context: .
+      context: ./frontend/
     ports:
       - "5000:5000"
-    logging:
-      driver: loki
-      options:
-        loki-url: 'http://localhost:3100/api/prom/push'
+
+  
+  backend:
+    container_name: backend
+    build: 
+      context: ./backend/
+    ports:
+    - "5001:5001"
+
 
   postgres:
     image: postgres:13-alpine
@@ -23,10 +28,7 @@ services:
       - POSTGRES_PASSWORD=password
     ports:
       - "5432:5432"
-    logging:
-      driver: loki
-      options:
-        loki-url: 'http://localhost:3100/api/prom/push'
+
 
   postgres-exporter:
     image: docker.io/bitnami/postgres-exporter:0
@@ -38,10 +40,7 @@ services:
       - PG_EXPORTER_AUTO_DISCOVER_DATABASES=true
     ports:
     - 9187:9187
-    logging:
-      driver: loki
-      options:
-        loki-url: 'http://localhost:3100/api/prom/push'
+
 
   prometheus:
     image: prom/prometheus:v2.32.1
@@ -52,10 +51,7 @@ services:
     - --config.file=/etc/prometheus/prometheus.yaml
     volumes:
     - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
-    logging:
-      driver: loki
-      options:
-        loki-url: 'http://localhost:3100/api/prom/push'
+
 
   grafana:
     image: grafana/grafana:8.3.4
@@ -69,27 +65,26 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     ports: 
     - 3000:3000
-    logging:
-      driver: loki
-      options:
-        loki-url: 'http://localhost:3100/api/prom/push'
 
-  loki:
-    image: grafana/loki:master
-    container_name: loki
-    ports:
-      - '3100:3100'
-    command: -config.file=/etc/loki/local-config.yaml
+
+  #loki:
+  #  image: grafana/loki:master
+  #  container_name: loki
+  #  ports:
+  #    - '3100:3100'
+  #  command: -config.file=/etc/loki/local-config.yaml
     # send Loki traces to Jaeger
-    environment:
-      - JAEGER_AGENT_HOST=jaeger
-      - JAEGER_AGENT_PORT=6831
-      - JAEGER_SAMPLER_TYPE=const
-      - JAEGER_SAMPLER_PARAM=1
-    logging:
-      driver: loki
-      options:
-        loki-url: 'http://localhost:3100/api/prom/push'
+  #  environment:
+  #    - JAEGER_AGENT_HOST=jaeger
+  #    - JAEGER_AGENT_PORT=6831
+  #    - JAEGER_SAMPLER_TYPE=const
+  #    - JAEGER_SAMPLER_PARAM=1
+  #  depends_on:
+  #    - grafana
+  #  logging:
+  #    driver: loki
+  #    options:
+  #      loki-url: 'http://localhost:3100/api/prom/push'
 
   jaeger:
     image: jaegertracing/all-in-one:1.30
@@ -97,7 +92,3 @@ services:
     ports:
       - '6831:6831'
       - '16686:16686'
-    logging:
-      driver: loki
-      options:
-        loki-url: 'http://localhost:3100/api/prom/push'

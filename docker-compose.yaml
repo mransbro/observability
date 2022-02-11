@@ -24,29 +24,6 @@ services:
     - "5001:5001"
 
 
-  postgres:
-    image: postgres:13-alpine
-    container_name: postgres
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
-
-
-  postgres-exporter:
-    image: docker.io/bitnami/postgres-exporter:0
-    container_name: postgres-exporter
-    environment:
-      - DATA_SOURCE_URI=${DATA_SOURCE_URI}
-      - DATA_SOURCE_USER=${DATA_SOURCE_USER}
-      - DATA_SOURCE_PASS=${DATA_SOURCE_PASS}
-      - PG_EXPORTER_AUTO_DISCOVER_DATABASES=${PG_EXPORTER_AUTO_DISCOVER_DATABASES}
-    ports:
-      - "9187:9187"
-
-
   prometheus:
     image: prom/prometheus:v2.32.1
     container_name: prometheus
@@ -56,6 +33,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yaml
     volumes:
       - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+
 
 
   grafana:
@@ -71,29 +49,25 @@ services:
     ports: 
       - "3000:3000"
 
-
-  #loki:
-  #  image: grafana/loki:master
-  #  container_name: loki
-  #  ports:
-  #    - '3100:3100'
-  #  command: -config.file=/etc/loki/local-config.yaml
-    # send Loki traces to Jaeger
-  #  environment:
-  #    - JAEGER_AGENT_HOST=jaeger
-  #    - JAEGER_AGENT_PORT=6831
-  #    - JAEGER_SAMPLER_TYPE=const
-  #    - JAEGER_SAMPLER_PARAM=1
-  #  depends_on:
-  #    - grafana
-  #  logging:
-  #    driver: loki
-  #    options:
-  #      loki-url: 'http://localhost:3100/api/prom/push'
-
   jaeger:
     image: jaegertracing/all-in-one:1.30
     container_name: jaeger
     ports:
       - "6831:6831"
       - "16686:16686"
+
+  loki:
+    container_name: loki
+    image: grafana/loki:1.4.1
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:1.4.1
+    volumes:
+      - /var/lib/docker/:/var/lib/docker/:ro
+      - ./promtail/config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
